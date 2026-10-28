@@ -4,21 +4,20 @@ int gaps_original(int n, int* gaps)
 {
     int cnt = 0;
     for (int g = n / 2; g >= 1; g /= 2) gaps[cnt++] = g;
-    if (cnt == 0) gaps[cnt++] = 1;                 /* n = 1 같은 경우 대비 */
+    if (cnt == 0) gaps[cnt++] = 1;                 
     return cnt;
 }
 
 int gaps_knuth(int n, int* gaps)
 {
     int asc[MAX_GAPS], cnt = 0;
-    long long h = 1;                               /* h(1) = 1 */
-    while (h < n) { asc[cnt++] = (int)h; h = 3 * h + 1; }   /* 1, 4, 13, 40, ... (n 보다 작은 것만) */
+    long long h = 1;                               
+    while (h < n) { asc[cnt++] = (int)h; h = 3 * h + 1; }   
     if (cnt == 0) asc[cnt++] = 1;
-    for (int i = 0; i < cnt; i++) gaps[i] = asc[cnt - 1 - i];  /* 큰 간격부터 */
+    for (int i = 0; i < cnt; i++) gaps[i] = asc[cnt - 1 - i];  
     return cnt;
 }
 
-/* 간격 gap 으로 떨어진 원소들끼리 삽입 정렬 */
 static long long gap_insertion(int* a, int n, int gap)
 {
     long long cmp = 0;
@@ -26,7 +25,7 @@ static long long gap_insertion(int* a, int n, int gap)
         int cur = a[i];
         int j = i - gap;
         while (j >= 0) {
-            cmp++;                                 /* a[j] 와 cur 값 비교 1회 */
+            cmp++;                                 
             if (a[j] > cur) { a[j + gap] = a[j]; j -= gap; }
             else break;
         }

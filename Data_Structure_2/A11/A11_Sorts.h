@@ -1,23 +1,11 @@
-/* ==========================================================================
- *  sorts.h  —  삽입 정렬 / 쉘 정렬 (기본 간격, Knuth 간격) 과 비교 횟수 측정 (과제-11)
- *
- *  비교 횟수 기준 : 두 데이터 "값"을 견주는 연산(a[j] > current)을 결과와 상관없이 1회로 센다.
- *                   반복문의 인덱스 검사(j >= 0 등)는 세지 않는다.
- *
- *  공정한 비교를 위해 세 정렬은 같은 "간격 삽입 정렬" 한 함수를 공유한다.
- *  삽입 정렬 = 간격 1 한 번, 쉘 정렬 = 간격 수열을 따라 간격 삽입 정렬을 반복.
- *  따라서 세 방법의 차이는 오직 "간격 수열" 뿐이다.
- * ========================================================================== */
 #ifndef A11_SORTS_H
 #define A11_SORTS_H
 
 #define MAX_GAPS 64
 
- /* 간격 수열 만들기 (적용 순서대로 gaps[0] 가 첫 간격, 마지막은 항상 1). 간격 개수를 반환 */
-int gaps_original(int n, int* gaps);   /* n/2, n/4, ..., 1 (정수 나눗셈) */
-int gaps_knuth(int n, int* gaps);      /* h(1)=1, h(k+1)=3h(k)+1 중 n 보다 작은 가장 큰 값부터 역순으로 1까지 */
+int gaps_original(int n, int* gaps);   
+int gaps_knuth(int n, int* gaps);      
 
-/* 각 정렬은 비교 횟수를 반환한다 (오름차순). */
 long long insertion_sort(int* a, int n);
 long long shell_sort_original(int* a, int n);
 long long shell_sort_knuth(int* a, int n);

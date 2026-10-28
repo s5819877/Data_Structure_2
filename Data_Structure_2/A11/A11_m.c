@@ -1,11 +1,3 @@
-/* ==========================================================================
- *  main.c  —  과제-11 : 삽입 정렬과 쉘 정렬(기본 간격 / Knuth 간격)의 비교 횟수 비교
- *
- *  사용법 : ./shell_compare [seed] [trials]
- *           기본값  seed=20251022  trials=20
- *  앞부분은 과제 4장 형식(데이터 크기별 1회 실험)이고, 그 뒤에 추가 분석
- *  (간격 수열, 여러 번 반복한 평균, 크기에 따른 증가 지수)과 자체 검증 결과가 붙는다.
- * ========================================================================== */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -23,11 +15,10 @@ static const SortFn FN[NALG] = { insertion_sort, shell_sort_original, shell_sort
 
 static int bad_sorted = 0, bad_multiset = 0, bad_theory = 0, runs = 0;
 
-/* 같은 원본 src 의 복사본에 alg 번 정렬을 수행하고 결과를 검증 */
 static long long run(int alg, const int* src, int n)
 {
     static int w[MAXN];
-    memcpy(w, src, sizeof(int) * n);           /* 복사는 횟수에 미포함 */
+    memcpy(w, src, sizeof(int) * n);
     long long c = FN[alg](w, n);
     runs++;
     if (!is_sorted(w, n))          bad_sorted++;
@@ -57,13 +48,12 @@ int main(int argc, char** argv)
 
     static int data[MAXN];
 
-    /* ---------------- 데이터 크기별 1회 실험 (과제 4장 형식) ---------------- */
     for (int s = 0; s < NSIZES; s++) {
         int n = SIZES[s];
         gen_random(data, n);
         long long c[NALG];
         for (int a = 0; a < NALG; a++) c[a] = run(a, data, n);
-        if (c[INS] != insertion_cmp_expected(data, n)) {       /* 정렬 코드와 무관한 직접 계산과 대조 */
+        if (c[INS] != insertion_cmp_expected(data, n)) {       
             bad_theory++;
             fprintf(stderr, "[이론값 불일치] n=%d 삽입 정렬 측정 %lld\n", n, c[INS]);
         }
@@ -72,19 +62,17 @@ int main(int argc, char** argv)
         printf("\n");
     }
 
-    /* ---------------- 추가 분석 1 : 간격 수열 ---------------- */
     printf("------------------------------------\n\n[추가 분석 1] 간격 수열\n");
     print_gaps("", 1000);
     print_gaps("", 20000);
 
-    /* ---------------- 추가 분석 2 : 여러 번 반복한 평균 ---------------- */
     fprintf(stderr, "반복 평균 실험: 크기 %d개 x %d회 (몇 초 걸립니다)\n", NSIZES, trials);
     double avg[NSIZES][NALG];
     for (int s = 0; s < NSIZES; s++) {
         int n = SIZES[s];
         double sum[NALG] = { 0, 0, 0 };
         for (int t = 0; t < trials; t++) {
-            gen_random(data, n);                         /* 매 회 새 데이터, 세 정렬은 같은 복사본 */
+            gen_random(data, n);                         
             for (int a = 0; a < NALG; a++) sum[a] += (double)run(a, data, n);
         }
         for (int a = 0; a < NALG; a++) avg[s][a] = sum[a] / trials;
@@ -99,7 +87,6 @@ int main(int argc, char** argv)
     for (int s = 0; s < NSIZES; s++)
         printf("%8d %14.2f %14.2f %14.2f\n", SIZES[s], avg[s][INS] / SIZES[s], avg[s][SHO] / SIZES[s], avg[s][SHK] / SIZES[s]);
 
-    /* ---------------- 추가 분석 3 : 증가 지수 (비교 ~ n^p 라고 보았을 때의 p) ---------------- */
     printf("\n비교 횟수가 n^p 에 비례한다고 볼 때의 지수 p  (인접한 두 크기 사이)\n");
     printf("%14s %12s %14s %14s\n", "구간", "Insertion", "Shell(Orig)", "Shell(Knuth)");
     for (int s = 1; s < NSIZES; s++) {
@@ -110,9 +97,6 @@ int main(int argc, char** argv)
             log(avg[s][SHK] / avg[s - 1][SHK]) / dn);
     }
 
-    /* ---------------- 추가 분석 4 : 단계 수와 단계당 최소 비용 ----------------
-     * 간격 g 의 단계는 원소마다 최소 1번은 비교해야 하므로 적어도 (n - g) 번이다.
-     * 따라서 쉘 정렬의 비교 횟수 = Σ(n - g)  [단계 수가 만드는 고정 비용]  +  나머지 [실제로 밀어낸 횟수 등] */
     printf("\n[추가 분석 4] 쉘 정렬 비교 횟수 = 단계별 최소 비용 합 Σ(n-g) + 나머지  (%d회 평균)\n", trials);
     printf("%8s | %5s %10s %10s | %5s %10s %10s\n", "n", "단계", "Σ(n-g)", "나머지", "단계", "Σ(n-g)", "나머지");
     printf("%8s | %27s | %27s\n", "", "Original", "Knuth");
