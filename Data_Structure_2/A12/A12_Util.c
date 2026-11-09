@@ -33,7 +33,6 @@ static int cmp_up(const void* x, const void* y)
     return (a > b) - (a < b);
 }
 
-/* 입력 준비용 정렬 : 정렬 알고리즘 실험과 무관 (qsort 사용, 비교 횟수 미집계) */
 void gen_sorted(const int* src, int* dst, int n)
 {
     memcpy(dst, src, sizeof(int) * n);
