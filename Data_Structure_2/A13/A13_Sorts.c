@@ -33,12 +33,10 @@ unsigned long long memory_model_bytes(const SortStats* st)
     return (unsigned long long)st->heap_bytes + stack_model_bytes(st);
 }
 
-/* ---------------------------------------------------------------- ¸Ş¸ğ¸® ÃøÁ¤ µµ±¸ */
-/* ÇÒ´ç ¶§¸¶´Ù ¾çÀ» ±â·ÏÇÑ´Ù. ÃÖ´ñ°ªÀÌ "Ãß°¡ ¹è¿­ »ç¿ë·®" */
 static void* tracked_alloc(size_t bytes, SortStats* st)
 {
     void* p = malloc(bytes);
-    if (!p) { fprintf(stderr, "¸Ş¸ğ¸® ÇÒ´ç ½ÇÆĞ\n"); exit(1); }
+    if (!p) { fprintf(stderr, "ë©”ëª¨ë¦¬ í• ë‹¹ ì‹¤íŒ¨\n"); exit(1); }
     st->heap_now += bytes;
     if (st->heap_now > st->heap_bytes) st->heap_bytes = st->heap_now;
     return p;
@@ -49,7 +47,6 @@ static void tracked_free(void* p, size_t bytes, SortStats* st)
     st->heap_now -= bytes;
 }
 
-/* ÇöÀç ½ºÅÃ À§Ä¡(¼ıÀÚ). ÇÔ¼ö·Î ºĞ¸®ÇØ È£Ãâ ´Ü°è¸¶´ÙÀÇ ½ºÅÃ À§Ä¡¸¦ ºñ±³ÇÑ´Ù. */
 static NOINLINE uintptr_t current_sp(void)
 {
     volatile char c = 0;
@@ -58,13 +55,12 @@ static NOINLINE uintptr_t current_sp(void)
 static void probe(SortStats* st)
 {
     uintptr_t sp = current_sp();
-    uintptr_t used = st->stack_base > sp ? st->stack_base - sp : sp - st->stack_base;   /* ½ºÅÃÀÌ ¾î´À ¹æÇâÀ¸·Î ÀÚ¶óµç °Å¸®¸¸ º»´Ù */
+    uintptr_t used = st->stack_base > sp ? st->stack_base - sp : sp - st->stack_base;   
     if (used > st->stack_bytes) st->stack_bytes = (size_t)used;
 }
 
 static void swap_int(int* x, int* y) { int t = *x; *x = *y; *y = t; }
 
-/* ================================================================ º´ÇÕ Á¤·Ä (À§¿¡¼­ ¾Æ·¡·Î, Àç±Í) */
 static void ms_rec(int* a, int* tmp, int lo, int hi, int depth, SortStats* st)
 {
     if (st->probe_stack) probe(st);
@@ -75,14 +71,13 @@ static void ms_rec(int* a, int* tmp, int lo, int hi, int depth, SortStats* st)
     ms_rec(a, tmp, lo, mid, depth + 1, st);
     ms_rec(a, tmp, mid + 1, hi, depth + 1, st);
 
-    /* º´ÇÕ : Á¤·ÄµÈ µÎ ºÎºĞ [lo..mid], [mid+1..hi] ¸¦ ÀÓ½Ã ¹è¿­·Î ÇÕÄ£´Ù */
     int i = lo, j = mid + 1, k = lo;
     while (i <= mid && j <= hi) {
-        st->cmp++;                                  /* °ª ºñ±³ 1È¸ */
-        if (a[i] <= a[j]) tmp[k++] = a[i++];        /* °°À¸¸é ¿ŞÂÊÀ» ¸ÕÀú (¾ÈÁ¤ Á¤·Ä) */
+        st->cmp++;                                  
+        if (a[i] <= a[j]) tmp[k++] = a[i++];        
         else              tmp[k++] = a[j++];
     }
-    while (i <= mid) tmp[k++] = a[i++];             /* ³²Àº ÂÊÀº ºñ±³ ¾øÀÌ º¹»ç */
+    while (i <= mid) tmp[k++] = a[i++];            
     while (j <= hi)  tmp[k++] = a[j++];
     for (k = lo; k <= hi; k++) a[k] = tmp[k];
 }
@@ -92,26 +87,24 @@ void merge_sort(int* a, int n, SortStats* st)
     int probe_flag = st->probe_stack;
     stats_init(st, probe_flag);
     if (n < 2) return;
-    int* tmp = (int*)tracked_alloc(sizeof(int) * (size_t)n, st);   /* ÀÓ½Ã ¹è¿­ : ¿øº»°ú °°Àº Å©±â */
+    int* tmp = (int*)tracked_alloc(sizeof(int) * (size_t)n, st);   
     if (probe_flag) st->stack_base = current_sp();
     ms_rec(a, tmp, 0, n - 1, 1, st);
     tracked_free(tmp, sizeof(int) * (size_t)n, st);
 }
 
-/* ================================================================ Äü Á¤·Ä (°úÁ¦ 12 ¿Í °°Àº ±¸Çö) */
-/* ÇÇ¹şÀÌ µÉ ¿ø¼ÒÀÇ "À§Ä¡"¸¦ °í¸¥´Ù. ÀÌ ºÎºĞ¸¸ ¹æ¹ı¸¶´Ù ´Ù¸£´Ù. */
 static int pick_pivot(const int* a, int lo, int hi, PivotMethod m, Rng* r, SortStats* st)
 {
     switch (m) {
     case PIVOT_FIRST:
         return lo;
     case PIVOT_RANDOM:
-        return rng_range(r, lo, hi);                 /* ºĞÇÒÇÒ ¶§¸¶´Ù »õ·Î »ÌÀ½ (³­¼ö »ı¼ºÀº ºñ±³¿¡ ¹ÌÆ÷ÇÔ) */
+        return rng_range(r, lo, hi);                 
     default: {
-        if (hi - lo + 1 < 3) return lo;              /* ¿ø¼Ò 2°³ ±¸°£Àº Áß¾Ó°ªÀÌ ÀÇ¹Ì ¾ø¾î Ã¹ ¿ø¼Ò */
+        if (hi - lo + 1 < 3) return lo;              
         int mid = lo + (hi - lo) / 2;
         int x = a[lo], y = a[mid], z = a[hi];
-        st->cmp++;                                   /* ¼¼ °ªÀÇ Áß¾Ó°ªÀ» Ã£´Â °ª ºñ±³ (2~3È¸) */
+        st->cmp++;                                   
         if (x < y) {
             st->cmp++;
             if (y < z) return mid;
@@ -128,7 +121,6 @@ static int pick_pivot(const int* a, int lo, int hi, PivotMethod m, Rng* r, SortS
     }
 }
 
-/* ºĞÇÒ (¼¼ ¹æ¹ı °øÅë, ¾çÂÊ¿¡¼­ Á¼Çô ¿À´Â Hoare ¹æ½Ä). ÇÇ¹şÀÌ a[lo] ¿¡ ¿Í ÀÖ´Ù°í °¡Á¤. ÇÇ¹şÀÇ ÃÖÁ¾ À§Ä¡¸¦ µ¹·ÁÁØ´Ù. */
 static int partition(int* a, int lo, int hi, SortStats* st)
 {
     int v = a[lo];
@@ -160,7 +152,7 @@ static void qs_rec(int* a, int lo, int hi, int depth, PivotMethod m, Rng* r, Sor
     if (depth > st->max_depth) st->max_depth = depth;
 
     int p = pick_pivot(a, lo, hi, m, r, st);
-    swap_int(&a[lo], &a[p]);                         /* ÇÇ¹şÀ» ¸Ç ¾ÕÀ¸·Î */
+    swap_int(&a[lo], &a[p]);                        
     int j = partition(a, lo, hi, st);
     qs_rec(a, lo, j - 1, depth + 1, m, r, st);
     qs_rec(a, j + 1, hi, depth + 1, m, r, st);
@@ -171,5 +163,5 @@ void quick_sort(int* a, int n, PivotMethod m, Rng* pivot_rng, SortStats* st)
     int probe_flag = st->probe_stack;
     stats_init(st, probe_flag);
     if (probe_flag) st->stack_base = current_sp();
-    qs_rec(a, 0, n - 1, 1, m, pivot_rng, st);        /* Äü Á¤·ÄÀº Ãß°¡ ¹è¿­À» ÀâÁö ¾Ê´Â´Ù */
+    qs_rec(a, 0, n - 1, 1, m, pivot_rng, st);        /* í€µ ì •ë ¬ì€ ì¶”ê°€ ë°°ì—´ì„ ì¡ì§€ ì•ŠëŠ”ë‹¤ */
 }
