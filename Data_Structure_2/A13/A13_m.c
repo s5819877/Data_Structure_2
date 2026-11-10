@@ -1,12 +1,4 @@
-﻿/* ==========================================================================
- *  main.c  —  과제-13 : 병합 정렬과 퀵 정렬(피벗 3종)의 비교 횟수 / 실행시간 / 메모리 비교
- *
- *  사용법 : ./merge_vs_quick [seed] [trials] [time_rounds]
- *           기본값  seed=20251022  trials=20  time_rounds=100  (time_rounds=0 이면 시간 측정 생략)
- *  앞부분은 과제 4장 형식(데이터 크기별 1회 실험), 뒤에 추가 분석과 자체 검증이 붙는다.
- *  비교 횟수와 메모리(계산값)는 시드가 같으면 항상 같고, 실행시간과 "실측 스택"은 컴퓨터/빌드마다 달라진다.
- * ========================================================================== */
-#include <stdio.h>
+﻿#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
@@ -22,18 +14,15 @@ static const char* LABEL[NALG] = { "Merge Sort", "Quick (First)", "Quick (Random
 static int bad_sorted = 0, bad_multiset = 0, bad_bounds = 0, bad_heap = 0, runs = 0;
 static uint64_t pivot_seed_base;
 
-/* ------------------------------------------------------------ 병합 정렬 비교 횟수의 이론 범위 */
 static long long merge_best(int n) { return n < 2 ? 0 : merge_best(n / 2) + merge_best(n - n / 2) + n / 2; }
 static long long merge_worst(int n) { return n < 2 ? 0 : merge_worst(n / 2) + merge_worst(n - n / 2) + (n - 1); }
 
-/* ------------------------------------------------------------ 정렬 한 번 실행 */
 static void run_alg(int alg, int* a, int n, Rng* pr, SortStats* st)
 {
     if (alg == ALG_MERGE) merge_sort(a, n, st);
     else                  quick_sort(a, n, (PivotMethod)(alg - 1), pr, st);
 }
 
-/* 같은 원본 src 의 복사본을 정렬하고 결과를 검증한다. (복사는 측정에 미포함) */
 static void measure_once(int alg, const int* src, int n, int probe_stack, SortStats* st)
 {
     static int w[MAXN];
@@ -47,12 +36,11 @@ static void measure_once(int alg, const int* src, int n, int probe_stack, SortSt
     if (!same_multiset(w, src, n)) bad_multiset++;
     if (alg == ALG_MERGE) {
         if (st->cmp < merge_best(n) || st->cmp > merge_worst(n)) bad_bounds++;
-        if (st->heap_bytes != (n >= 2 ? sizeof(int) * (size_t)n : 0)) bad_heap++;     /* 임시 배열 = 정확히 4n 바이트 */
+        if (st->heap_bytes != (n >= 2 ? sizeof(int) * (size_t)n : 0)) bad_heap++;     
     }
-    else if (st->heap_bytes != 0) bad_heap++;                                       /* 퀵 정렬은 추가 배열이 없다 */
+    else if (st->heap_bytes != 0) bad_heap++;                                       
 }
 
-/* ------------------------------------------------------------ 시간 측정 */
 typedef struct { double mean, median; } TimeRes;
 static int cmp_double(const void* a, const void* b)
 {
@@ -68,8 +56,6 @@ static void summarize(double* t, int rounds, TimeRes* res)
     res->median = t[rounds / 2];
 }
 
-/* 같은 원본을 rounds 번 정렬한 시간. 복사, 피벗 난수 시드 설정, 검증은 시간에서 뺀다.
- * 정렬 함수를 부르는 구간만 잰다 (병합 정렬의 임시 배열 할당/해제도 정렬의 일부라 포함). */
 static TimeRes time_same(int alg, const int* src, int n, int rounds)
 {
     static int w[MAXN];
@@ -77,7 +63,7 @@ static TimeRes time_same(int alg, const int* src, int n, int rounds)
     double* t = (double*)malloc(sizeof(double) * rounds);
     Rng pr;
     SortStats st;
-    for (int r = -3; r < rounds; r++) {                 /* r < 0 은 예열(기록 안 함) */
+    for (int r = -3; r < rounds; r++) {                 
         memcpy(w, src, sizeof(int) * n);
         rng_seed(&pr, pivot_seed_base);
         stats_init(&st, 0);
@@ -93,7 +79,6 @@ static TimeRes time_same(int alg, const int* src, int n, int rounds)
     return res;
 }
 
-/* 매 회 새 무작위 데이터를 만들어 네 알고리즘이 같은 복사본을 정렬. 순서를 돌려가며 실행해 순서 편향을 없앤다. */
 static void time_fresh(int n, int rounds, uint64_t seed, TimeRes res[NALG])
 {
     static int data[MAXN], w[MAXN];
@@ -126,7 +111,7 @@ int main(int argc, char** argv)
     int trials = argc > 2 ? atoi(argv[2]) : 20;
     int time_rounds = argc > 3 ? atoi(argv[3]) : 100;
     if (trials < 1) trials = 1;
-    pivot_seed_base = seed ^ 0x5DEECE66DULL;            /* 피벗용 난수는 데이터용과 별개 */
+    pivot_seed_base = seed ^ 0x5DEECE66DULL;            
 
     static int data[MAXN];
     Rng dr;
@@ -134,14 +119,13 @@ int main(int argc, char** argv)
 
     SortStats res[NSIZES][NALG], probe[NSIZES][NALG];
 
-    /* ---------------- 데이터 크기별 1회 실험 (과제 4장 형식) ---------------- */
     for (int s = 0; s < NSIZES; s++) {
         int n = SIZES[s];
         gen_random(&dr, data, n);
         for (int a = 0; a < NALG; a++) {
-            measure_once(a, data, n, 0, &res[s][a]);          /* 비교 횟수, 깊이, 추가 배열 */
-            measure_once(a, data, n, 1, &probe[s][a]);        /* 같은 데이터로 실제 스택 사용량 측정 */
-            if (probe[s][a].cmp != res[s][a].cmp) bad_bounds++;   /* 스택 측정이 결과를 바꾸면 안 된다 */
+            measure_once(a, data, n, 0, &res[s][a]);          
+            measure_once(a, data, n, 1, &probe[s][a]);        
+            if (probe[s][a].cmp != res[s][a].cmp) bad_bounds++;   
         }
         printf("Data Size : %d\n\n", n);
         printf("Algorithm       Comparisons    Time(ms)    Memory(Bytes)\n");
@@ -154,7 +138,6 @@ int main(int argc, char** argv)
         printf("\n");
     }
 
-    /* ---------------- 추가 분석 1 : 여러 번 반복한 평균 비교 횟수 ---------------- */
     double avg_cmp[NSIZES][NALG];
     for (int s = 0; s < NSIZES; s++) {
         int n = SIZES[s];
@@ -186,7 +169,6 @@ int main(int argc, char** argv)
         printf("\n");
     }
 
-    /* ---------------- 추가 분석 2 : 서로 다른 데이터로 반복 측정한 실행시간 ---------------- */
     if (time_rounds > 0) {
         TimeRes tr[NSIZES][NALG];
         for (int s = 0; s < NSIZES; s++) time_fresh(SIZES[s], time_rounds, seed + 1, tr[s]);
@@ -208,7 +190,6 @@ int main(int argc, char** argv)
                 tr[s][3].median / tr[s][0].median);
     }
 
-    /* ---------------- 추가 분석 3 : 메모리 구성 ---------------- */
     printf("\n------------------------------------\n\n[추가 분석 3] 메모리 구성 (각 크기의 1회 실험 데이터, Byte)\n");
     printf("추가 배열 = 정렬 중 malloc 으로 잡은 양을 직접 센 값\n");
     printf("스택(계산) = (최대 재귀 깊이 + 1) x %d   ← 표의 Memory 는 추가 배열 + 스택(계산)\n", FRAME_BYTES_MODEL);
