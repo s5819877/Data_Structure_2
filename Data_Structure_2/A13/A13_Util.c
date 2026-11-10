@@ -1,9 +1,9 @@
-#define _POSIX_C_SOURCE 200809L          /* 리눅스에서 clock_gettime 을 쓰기 위함 (다른 헤더보다 먼저) */
+#define _POSIX_C_SOURCE 200809L          
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include "A13_Util.h"
-#ifdef _WIN32                            /* Windows(Visual Studio, MinGW)에는 clock_gettime 이 없다 */
+#ifdef _WIN32                            
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #endif
